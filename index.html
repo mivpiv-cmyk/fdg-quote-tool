@@ -618,13 +618,15 @@ async function fetchRates(sku, units, destZip, pickupDate, fcOverride, accessori
     const res = await fetch(WORKER_URL+'/quote', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
     const raw = await res.json();
     if (!res.ok) return { error: raw?.message || raw?.error || 'P1 error '+res.status };
-    let rates = Array.isArray(raw) ? raw : (raw.rates||raw.data||raw.quotes||[]);
+    let rates = Array.isArray(raw) ? raw : (raw.rateQuotes||raw.rates||raw.data||raw.quotes||[]);
     rates.sort((a,b) => price(a)-price(b));
     return { rates };
   } catch(e) { return { error:e.message }; }
 }
 
 function price(r) {
+  // P1 v2 structure: rateQuoteDetail.total
+  if (r?.rateQuoteDetail?.total != null) return +r.rateQuoteDetail.total;
   for (const k of ['totalCharge','totalAmount','price','amount','total','netCharge']) {
     if (r[k]!=null && !isNaN(+r[k])) return +r[k];
   }
