@@ -1,0 +1,7 @@
+name = "fdg-p1-proxy"
+main = "worker.js"
+compatibility_date = "2024-09-23"
+
+# API key is NOT stored here.
+# Run once after deploy:  wrangler secret put P1_API_KEY
+# Then paste the key when prompted.

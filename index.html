@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FDG Quote Tool</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #1c2230;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #7d8590;
+    --accent: #2563eb;
+    --accent-light: #3b82f6;
+    --success: #238636;
+    --success-text: #3fb950;
+    --warning: #9e6a03;
+    --warning-text: #d29922;
+    --danger: #da3633;
+    --danger-text: #f85149;
+    --tag-bg: #1f2937;
+    --orange: #e8a020;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 14px; min-height: 100vh; }
+
+  /* ── HEADER ── */
+  .header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; }
+  .header-logo { font-size: 18px; font-weight: 700; letter-spacing: -0.5px; }
+  .header-logo span { color: var(--accent-light); }
+  .header-sub { color: var(--muted); font-size: 12px; margin-top: 2px; }
+  .header-badge { background: var(--tag-bg); border: 1px solid var(--border); border-radius: 20px; padding: 3px 10px; font-size: 11px; color: var(--muted); }
+
+  /* ── TABS ── */
+  .tabs { display: flex; background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 24px; }
+  .tab { padding: 12px 20px; cursor: pointer; color: var(--muted); font-size: 13px; font-weight: 500; border-bottom: 2px solid transparent; transition: all 0.15s; user-select: none; }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--accent-light); border-bottom-color: var(--accent-light); }
+
+  /* ── PANELS ── */
+  .panel { display: none; padding: 24px; max-width: 960px; margin: 0 auto; }
+  .panel.active { display: block; }
+
+  /* ── CARDS ── */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 20px; margin-bottom: 16px; }
+  .card-title { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 16px; }
+
+  /* ── FORM ── */
+  .form-row { display: grid; gap: 12px; margin-bottom: 12px; }
+  .form-row.cols-2 { grid-template-columns: 1fr 1fr; }
+  .form-row.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .form-row.cols-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+  .field-label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 5px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+  input[type=text], input[type=number], input[type=date], select {
+    width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+    color: var(--text); padding: 9px 11px; font-size: 13px; font-family: inherit; transition: border-color 0.15s;
+  }
+  input:focus, select:focus { outline: none; border-color: var(--accent-light); box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+  select option { background: var(--surface); }
+  input.auto { background: var(--surface2); color: var(--muted); }
+
+  /* ── OPTION TILES (radio) ── */
+  .option-grid { display: grid; gap: 8px; }
+  .option-grid.cols-2 { grid-template-columns: 1fr 1fr; }
+  .option-grid.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .option-tile {
+    display: flex; align-items: flex-start; gap: 10px;
+    background: var(--bg); border: 1px solid var(--border); border-radius: 7px;
+    padding: 11px 13px; cursor: pointer; transition: all 0.15s; user-select: none;
+  }
+  .option-tile:hover { border-color: var(--muted); }
+  .option-tile.selected { border-color: var(--accent-light); background: #0d1626; }
+  .option-tile input[type=radio] { margin-top: 2px; accent-color: var(--accent-light); flex-shrink: 0; }
+  .option-tile-label { font-size: 13px; font-weight: 500; color: var(--text); }
+  .option-tile-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  /* ── ACCESSORIAL CHECKBOXES ── */
+  .acc-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .acc-item { display: flex; align-items: center; gap: 8px; padding: 9px 11px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; transition: border-color 0.15s; }
+  .acc-item:hover { border-color: var(--muted); }
+  .acc-item input[type=checkbox] { width: 14px; height: 14px; accent-color: var(--accent-light); cursor: pointer; }
+  .acc-item .acc-label { font-size: 12px; color: var(--text); cursor: pointer; }
+  .acc-item.checked { border-color: var(--accent-light); background: #0d1626; }
+
+  /* ── BUTTONS ── */
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 18px; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; font-weight: 500; font-family: inherit; transition: all 0.15s; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover:not(:disabled) { background: #1d4ed8; }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+  .btn-secondary:hover { background: var(--border); }
+  .btn-sm { padding: 5px 11px; font-size: 12px; }
+  .btn-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+  /* ── SPINNER ── */
+  .spinner { display: inline-block; width: 13px; height: 13px; border: 2px solid rgba(255,255,255,0.25); border-top-color: #fff; border-radius: 50%; animation: spin 0.65s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── SECTION DIVIDER ── */
+  .section-sep { border: none; border-top: 1px solid var(--border); margin: 18px 0; }
+
+  /* ── PALLET MATH INLINE ── */
+  .pallet-strip { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px 14px; font-size: 12px; color: var(--muted); display: none; }
+  .pallet-strip.show { display: flex; gap: 24px; flex-wrap: wrap; }
+  .pallet-strip b { color: var(--text); }
+  .round-hint { display: none; background: #1a1e2a; border: 1px solid #2d4a8a; border-radius: 6px; padding: 9px 13px; font-size: 12px; color: #79a8f5; margin-top: 8px; }
+  .round-hint.show { display: block; }
+
+  /* ── WARN ── */
+  .warn-strip { background: #2b1a0d; border: 1px solid #5a3a0d; border-radius: 6px; padding: 9px 13px; font-size: 12px; color: var(--warning-text); display: none; }
+  .warn-strip.show { display: block; }
+
+  /* ── PRODUCT RESULT CARDS ── */
+  #results-wizard { display: none; }
+  .results-grid { display: grid; gap: 14px; }
+
+  .prod-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; transition: border-color 0.15s; }
+  .prod-card.primary { border-color: var(--accent); }
+  .prod-card.secondary { opacity: 0.88; }
+
+  .prod-card-header { padding: 14px 16px 0; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+  .prod-card-name { font-size: 16px; font-weight: 700; color: var(--text); }
+  .prod-card-sub { font-size: 12px; color: var(--muted); margin-top: 3px; }
+  .rank-badge { flex-shrink: 0; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 700; letter-spacing: 0.3px; }
+  .rank-primary { background: rgba(37,99,235,0.25); color: var(--accent-light); border: 1px solid var(--accent); }
+  .rank-secondary { background: var(--surface2); color: var(--muted); border: 1px solid var(--border); }
+
+  .prod-card-why { padding: 10px 16px; font-size: 13px; color: #c8d8e8; line-height: 1.5; }
+  .prod-card-caveat { margin: 0 16px 10px; background: #2b1a0d; border: 1px solid #5a3a0d; border-radius: 5px; padding: 7px 10px; font-size: 12px; color: var(--warning-text); }
+
+  .prod-card-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--border); border-top: 1px solid var(--border); }
+  .stat-cell { background: var(--surface2); padding: 11px 14px; }
+  .stat-lbl { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .stat-val { font-size: 16px; font-weight: 700; color: var(--text); margin-top: 3px; }
+  .stat-sub { font-size: 11px; color: var(--muted); margin-top: 1px; }
+
+  .prod-card-freight { padding: 12px 16px; border-top: 1px solid var(--border); }
+  .freight-loading { color: var(--muted); font-size: 13px; display: flex; align-items: center; gap: 8px; }
+  .freight-rates { display: none; }
+  .freight-best { font-size: 22px; font-weight: 700; color: var(--success-text); }
+  .freight-carrier { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .freight-toggle { font-size: 11px; color: var(--accent-light); cursor: pointer; margin-top: 6px; display: inline-block; }
+  .freight-toggle:hover { text-decoration: underline; }
+  .freight-all { display: none; margin-top: 10px; }
+  .freight-all.open { display: block; }
+  .freight-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .freight-table th { color: var(--muted); text-align: left; padding: 5px 8px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.4px; border-bottom: 1px solid var(--border); }
+  .freight-table td { padding: 7px 8px; border-bottom: 1px solid var(--border); }
+  .freight-table tr:last-child td { border-bottom: none; }
+  .freight-table tr.best-row td { background: #0d1f0d; }
+  .fdg-price { font-weight: 600; color: var(--success-text); }
+  .p1-price { color: var(--muted); font-size: 11px; }
+  .freight-error { font-size: 12px; color: var(--danger-text); }
+
+  .prod-card-footer { padding: 10px 16px 12px; display: flex; gap: 8px; border-top: 1px solid var(--border); }
+
+  /* ── QUICK FREIGHT TAB ── */
+  .rate-result { display: none; }
+  .rate-result.show { display: block; }
+  .rate-main { font-size: 28px; font-weight: 700; color: var(--success-text); }
+  .rate-meta { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+  /* ── RESULTS TABLE (Quick tab) ── */
+  .results-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .results-table th { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+  .results-table th.r { text-align: right; }
+  .results-table td { padding: 11px 12px; border-bottom: 1px solid var(--border); }
+  .results-table tr:last-child td { border-bottom: none; }
+  .results-table tr:hover td { background: var(--surface2); }
+  .results-table tr.best td { background: #0d1f0d; }
+  .carrier-name { font-weight: 600; }
+  .carrier-svc { font-size: 11px; color: var(--muted); margin-top: 1px; }
+  .del-date { font-size: 11px; color: var(--muted); margin-top: 1px; }
+  .best-tag { background: #0d2b1a; color: #3fb950; border: 1px solid #2d5a27; border-radius: 4px; padding: 1px 6px; font-size: 10px; font-weight: 700; margin-left: 6px; }
+  .err-card { background: #1f0d0d; border: 1px solid #5a1d1d; border-radius: 8px; padding: 14px 16px; color: var(--danger-text); font-size: 13px; display: none; }
+  .err-card.show { display: block; }
+
+  /* ── CONFIG NOTICE ── */
+  .config-notice { background: #1a1000; border: 1px solid #5a3a0d; border-radius: 7px; padding: 11px 14px; font-size: 12px; color: var(--warning-text); margin-bottom: 16px; display: none; }
+  .config-notice.show { display: flex; align-items: flex-start; gap: 8px; }
+  .config-notice code { background: rgba(0,0,0,0.3); padding: 1px 5px; border-radius: 3px; font-family: monospace; }
+
+  /* ── MISC ── */
+  .divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+  .totals-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 16px; }
+  .total-box { background: var(--surface2); border: 1px solid var(--border); border-radius: 7px; padding: 12px 14px; }
+  .total-box .lbl { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .total-box .val { font-size: 20px; font-weight: 700; color: var(--text); margin-top: 3px; }
+  .total-box .sub { font-size: 11px; color: var(--muted); margin-top: 1px; }
+
+  @media (max-width: 640px) {
+    .form-row.cols-3, .form-row.cols-4 { grid-template-columns: 1fr 1fr; }
+    .option-grid.cols-3 { grid-template-columns: 1fr 1fr; }
+    .prod-card-stats { grid-template-columns: 1fr 1fr; }
+    .acc-grid { grid-template-columns: 1fr 1fr; }
+    .totals-bar { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="header-logo">Flood Defense <span>Group</span></div>
+    <div class="header-sub">Product + Freight Quote Tool — Internal</div>
+  </div>
+  <div class="header-badge">Priority1 LTL</div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('wizard')" id="tab-wizard">&#9632; Find My Solution</div>
+  <div class="tab" onclick="switchTab('quick')" id="tab-quick">&#9679; Quick Freight Quote</div>
+</div>
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- TAB 1 — WIZARD                                      -->
+<!-- ══════════════════════════════════════════════════ -->
+<div id="panel-wizard" class="panel active">
+
+  <div class="config-notice" id="cfg-notice">
+    <span>⚠</span>
+    <span><code>WORKER_URL</code> is not set — freight prices won't load. Open <code>index.html</code>, find <code>const WORKER_URL = ""</code> at the top of the script, and paste in your proxy URL.</span>
+  </div>
+
+  <!-- Section 1 — Protection needs -->
+  <div class="card">
+    <div class="card-title">01 — Protection requirements</div>
+    <div class="form-row cols-2">
+      <div>
+        <label class="field-label">Linear feet to protect <span style="color:var(--danger-text)">*</span></label>
+        <input type="number" id="w-linear-ft" min="1" step="1" placeholder="e.g. 150" oninput="wizardCalc()" />
+        <div style="font-size:11px;color:var(--muted);margin-top:5px;">Total length of your protection line</div>
+      </div>
+      <div>
+        <label class="field-label">Flood height — how high does water get? <span style="color:var(--danger-text)">*</span></label>
+        <select id="w-height" onchange="wizardCalc()">
+          <option value="">— Select height —</option>
+          <option value="0.5">Under 6 inches</option>
+          <option value="0.75">6 – 9 inches</option>
+          <option value="1.5">9 inches – 1.5 ft</option>
+          <option value="2.5">1.5 – 2.5 ft (18 – 30 inches)</option>
+          <option value="3.33">2.5 – 3.3 ft (30 – 40 inches)</option>
+          <option value="4.5">3.3 – 4.5 ft (40 – 54 inches)</option>
+          <option value="6">4.5 – 6 ft</option>
+          <option value="8">6 – 8 ft</option>
+          <option value="12">Over 8 ft</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 2 — Flood conditions -->
+  <div class="card">
+    <div class="card-title">02 — Flood conditions</div>
+    <div style="margin-bottom:14px;">
+      <label class="field-label" style="margin-bottom:10px;">Type of water flow</label>
+      <div class="option-grid cols-3" id="flow-options">
+        <label class="option-tile" id="tile-still">
+          <input type="radio" name="w-flow" value="still" onchange="selectTile('flow-options',this)" />
+          <div>
+            <div class="option-tile-label">Still / Slow rise</div>
+            <div class="option-tile-sub">Rising water, no current. Rivers, storm surge that pools.</div>
+          </div>
+        </label>
+        <label class="option-tile" id="tile-moving">
+          <input type="radio" name="w-flow" value="moving" onchange="selectTile('flow-options',this)" />
+          <div>
+            <div class="option-tile-label">Moving / Flash flood</div>
+            <div class="option-tile-sub">Active current, debris in water. Fast-moving flood event.</div>
+          </div>
+        </label>
+        <label class="option-tile" id="tile-wave">
+          <input type="radio" name="w-flow" value="wave" onchange="selectTile('flow-options',this)" />
+          <div>
+            <div class="option-tile-label">Wave / Storm surge</div>
+            <div class="option-tile-sub">Coastal, hurricane. Waves hitting the barrier directly.</div>
+          </div>
+        </label>
+      </div>
+    </div>
+
+    <div>
+      <label class="field-label" style="margin-bottom:10px;">Ground surface under the barrier</label>
+      <div class="option-grid cols-4" id="surface-options">
+        <label class="option-tile">
+          <input type="radio" name="w-surface" value="hard" onchange="selectTile('surface-options',this)" />
+          <div>
+            <div class="option-tile-label">Concrete / Asphalt</div>
+            <div class="option-tile-sub">Hard, flat surface</div>
+          </div>
+        </label>
+        <label class="option-tile">
+          <input type="radio" name="w-surface" value="grass" onchange="selectTile('surface-options',this)" />
+          <div>
+            <div class="option-tile-label">Grass / Soil</div>
+            <div class="option-tile-sub">Soft ground, lawn</div>
+          </div>
+        </label>
+        <label class="option-tile">
+          <input type="radio" name="w-surface" value="gravel" onchange="selectTile('surface-options',this)" />
+          <div>
+            <div class="option-tile-label">Gravel / Uneven</div>
+            <div class="option-tile-sub">Irregular, loose base</div>
+          </div>
+        </label>
+        <label class="option-tile">
+          <input type="radio" name="w-surface" value="mixed" onchange="selectTile('surface-options',this)" />
+          <div>
+            <div class="option-tile-label">Mixed</div>
+            <div class="option-tile-sub">Crosses multiple types</div>
+          </div>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 3 — Shipping -->
+  <div class="card">
+    <div class="card-title">03 — Shipping details</div>
+    <div class="form-row cols-3">
+      <div>
+        <label class="field-label">Destination ZIP <span style="color:var(--danger-text)">*</span></label>
+        <input type="text" id="w-zip" maxlength="5" placeholder="e.g. 85001" />
+      </div>
+      <div>
+        <label class="field-label">Pickup date</label>
+        <input type="date" id="w-date" />
+      </div>
+      <div>
+        <label class="field-label">Freight class override</label>
+        <select id="w-fclass">
+          <option value="auto">Auto (by product)</option>
+          <option value="50">50</option><option value="55">55</option>
+          <option value="60">60</option><option value="65">65</option>
+          <option value="70">70</option><option value="77.5">77.5</option>
+          <option value="85">85</option><option value="92.5">92.5</option>
+          <option value="100">100</option>
+        </select>
+      </div>
+    </div>
+
+    <label class="field-label" style="margin-bottom:8px;">Accessorials</label>
+    <div class="acc-grid" id="w-acc">
+      <label class="acc-item" onclick="toggleAcc(this)"><input type="checkbox" value="liftgate"><span class="acc-label">Liftgate</span></label>
+      <label class="acc-item" onclick="toggleAcc(this)"><input type="checkbox" value="residential"><span class="acc-label">Residential</span></label>
+      <label class="acc-item" onclick="toggleAcc(this)"><input type="checkbox" value="limited_access"><span class="acc-label">Limited Access</span></label>
+      <label class="acc-item" onclick="toggleAcc(this)"><input type="checkbox" value="appointment"><span class="acc-label">Appointment Required</span></label>
+      <label class="acc-item" onclick="toggleAcc(this)"><input type="checkbox" value="gov_military"><span class="acc-label">Gov / Military Site</span></label>
+      <label class="acc-item" onclick="toggleAcc(this)"><input type="checkbox" value="notify"><span class="acc-label">Notify Before Delivery</span></label>
+    </div>
+  </div>
+
+  <div class="btn-row" style="margin-bottom:24px;">
+    <button class="btn btn-primary" id="w-submit" onclick="runWizard()">
+      <span id="w-btn-text">Find Products + Get Freight</span>
+      <div class="spinner" id="w-spinner" style="display:none;"></div>
+    </button>
+    <span id="w-err" style="color:var(--danger-text);font-size:13px;"></span>
+  </div>
+
+  <!-- ── RESULTS ── -->
+  <div id="results-wizard">
+
+    <div class="totals-bar" id="w-totals"></div>
+
+    <div style="margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-size:13px;color:var(--muted);" id="w-results-meta"></div>
+      <button class="btn btn-secondary btn-sm" onclick="clearWizard()">New search</button>
+    </div>
+
+    <div class="results-grid" id="w-cards"></div>
+  </div>
+
+</div><!-- /panel-wizard -->
+
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- TAB 2 — QUICK FREIGHT                              -->
+<!-- ══════════════════════════════════════════════════ -->
+<div id="panel-quick" class="panel">
+
+  <div class="card">
+    <div class="card-title">Product + Quantity</div>
+    <div class="form-row cols-2" style="margin-bottom:0;">
+      <div>
+        <label class="field-label">Product</label>
+        <select id="q-product" onchange="qProductChange()">
+          <option value="">— Select —</option>
+          <optgroup label="HESCO (Non-reusable)">
+            <option value="SL4836-2026">HESCO Floodline — 4′H × 15′L / unit</option>
+            <option value="MIL 1">HESCO MIL 1 — 4.5′H × 32.75′L / unit</option>
+            <option value="HBMIL3">HESCO MIL 3 — 3.25′H × 32.75′L / unit</option>
+            <option value="HBC5">HESCO MIL 5 — 2′H × 10′L / unit</option>
+            <option value="MIL7">HESCO MIL 7 — 7.25′H × 91′L / unit</option>
+            <option value="Mil8">HESCO MIL 8 — 4.5′H × 32.75′L / unit</option>
+            <option value="MIL10">HESCO MIL 10 — 7.25′H × 100′L / unit</option>
+            <option value="HB12">HESCO MIL 12 — 7′H × 108′L / unit</option>
+            <option value="MIL 19">HESCO MIL 19 — 9′H × 10.42′L / unit</option>
+          </optgroup>
+          <optgroup label="NOAQ Boxwall (Reusable, no fill)">
+            <option value="BW-52">NOAQ BW52 — 1.67′H × 2.96′L / unit</option>
+            <option value="BW-102">NOAQ BW102 — 3.33′H × 2.96′L / unit</option>
+          </optgroup>
+          <optgroup label="Muscle Wall (Reusable, water-filled)">
+            <option value="MW-NW8">Muscle Wall 8′ — 8′H × 4′L / unit</option>
+            <option value="MW4x6">Muscle Wall 4′×6′ — 4′H × 6′L / unit</option>
+          </optgroup>
+        </select>
+      </div>
+      <div>
+        <label class="field-label" id="q-qty-lbl">Units</label>
+        <input type="number" id="q-qty" min="1" step="1" placeholder="e.g. 20" oninput="qQtyChange()" />
+      </div>
+    </div>
+
+    <div style="margin-top:10px;display:flex;gap:16px;align-items:center;">
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);cursor:pointer;">
+        <input type="checkbox" id="q-use-lf" onchange="qQtyModeToggle()" style="accent-color:var(--accent-light);width:13px;height:13px;">
+        Enter linear feet instead
+      </label>
+    </div>
+
+    <div class="pallet-strip" id="q-pallet" style="margin-top:10px;"></div>
+    <div class="round-hint" id="q-roundhint"></div>
+    <div class="warn-strip" id="q-warn" style="margin-top:10px;"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Shipping Details</div>
+    <div class="form-row cols-3" style="margin-bottom:12px;">
+      <div>
+        <label class="field-label">Destination ZIP <span style="color:var(--danger-text)">*</span></label>
+        <input type="text" id="q-zip" maxlength="5" placeholder="e.g. 70051" />
+      </div>
+      <div>
+        <label class="field-label">Pickup date</label>
+        <input type="date" id="q-date" />
+      </div>
+      <div>
+        <label class="field-label">Freight class</label>
+        <select id="q-fclass">
+          <option value="50">50</option><option value="55">55</option>
+          <option value="60">60</option><option value="65" selected>65</option>
+          <option value="70">70</option><option value="77.5">77.5</option>
+          <option value="85">85</option><option value="92.5">92.5</option>
+          <option value="100">100</option>
+        </select>
+      </div>
+    </div>
+    <label class="field-label" style="margin-bottom:8px;">Accessorials</label>
+    <div class="acc-grid" id="q-acc">
+      <label class="acc-item" onclick="toggleAcc(this)"><input type="checkbox" value="liftgate"><span class="acc-label">Liftgate</span></label>
+      <label class="acc-item" onclick="toggleAcc(this)"><input type="checkbox" value="residential"><span class="acc-label">Residential</span></label>
+      <label class="acc-item" onclick="toggleAcc(this)"><input type="checkbox" value="limited_access"><span class="acc-label">Limited Access</span></label>
+      <label class="acc-item" onclick="toggleAcc(this)"><input type="checkbox" value="appointment"><span class="acc-label">Appointment Required</span></label>
+      <label class="acc-item" onclick="toggleAcc(this)"><input type="checkbox" value="gov_military"><span class="acc-label">Gov / Military Site</span></label>
+      <label class="acc-item" onclick="toggleAcc(this)"><input type="checkbox" value="notify"><span class="acc-label">Notify Before Delivery</span></label>
+    </div>
+  </div>
+
+  <div class="btn-row" style="margin-bottom:20px;">
+    <button class="btn btn-primary" id="q-submit" onclick="runQuick()" disabled>
+      <span id="q-btn-text">Get Freight Rates</span>
+      <div class="spinner" id="q-spinner" style="display:none;"></div>
+    </button>
+    <span id="q-err-inline" style="color:var(--danger-text);font-size:13px;"></span>
+  </div>
+
+  <div class="err-card" id="q-err-card"></div>
+
+  <div id="q-results" style="display:none;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <div style="font-size:13px;color:var(--muted);" id="q-results-meta"></div>
+      <button class="btn btn-secondary btn-sm" onclick="clearQuick()">Clear</button>
+    </div>
+    <div class="card" style="padding:0;overflow:hidden;">
+      <table class="results-table" id="q-table">
+        <thead>
+          <tr>
+            <th>Carrier</th>
+            <th>Transit</th>
+            <th>P1 Rate</th>
+            <th class="r">FDG Price (+10%)</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="q-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div><!-- /panel-quick -->
+
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- SCRIPT                                             -->
+<!-- ══════════════════════════════════════════════════ -->
+<script>
+// ─────────────────────────────────────────────────────
+// CONFIG — paste your Cloudflare Worker / Netlify URL here
+// ─────────────────────────────────────────────────────
+const WORKER_URL = "https://flooddefensegroup.workers.dev";
+
+// ─────────────────────────────────────────────────────
+// PRODUCT DATABASE  (from zoho-specs-import-2026-05-03.csv)
+// ─────────────────────────────────────────────────────
+const PRODUCTS = {
+  "SL4836-2026": { name:"HESCO Floodline", origin:"29418", upp:10, palletWt:1396, pL:52,pW:42,pH:46, fc:"65", stackable:false, deployH:4,   deployL:15,   price:645,  verified:true },
+  "MIL 1":       { name:"HESCO MIL 1",     origin:"29418", upp:7,  palletWt:2381, pL:57,pW:47,pH:87, fc:"65", stackable:false, deployH:4.5,  deployL:32.75,price:null, verified:true },
+  "HBMIL3":      { name:"HESCO MIL 3",     origin:"29418", upp:8,  palletWt:1956, pL:47,pW:43,pH:70, fc:"65", stackable:false, deployH:3.25, deployL:32.75,price:null, verified:true },
+  "HBC5":        { name:"HESCO MIL 5",     origin:"29418", upp:50, palletWt:2626, pL:83,pW:77,pH:34, fc:"65", stackable:false, deployH:2,    deployL:10,   price:null, verified:true },
+  "MIL7":        { name:"HESCO MIL 7",     origin:"29418", upp:1,  palletWt:2277, pL:90,pW:86,pH:23, fc:"65", stackable:false, deployH:7.25, deployL:91,   price:null, verified:true },
+  "Mil8":        { name:"HESCO MIL 8",     origin:"29418", upp:4,  palletWt:1419, pL:54,pW:46,pH:61, fc:"65", stackable:false, deployH:4.5,  deployL:32.75,price:null, verified:true },
+  "MIL10":       { name:"HESCO MIL 10",    origin:"29418", upp:1,  palletWt:2496, pL:90,pW:64,pH:34, fc:"65", stackable:false, deployH:7.25, deployL:100,  price:null, verified:true },
+  "HB12":        { name:"HESCO MIL 12",    origin:"29418", upp:1,  palletWt:1887, pL:91,pW:92,pH:32, fc:"65", stackable:false, deployH:7,    deployL:108,  price:null, verified:true },
+  "MIL 19":      { name:"HESCO MIL 19",    origin:"29418", upp:6,  palletWt:2690, pL:110,pW:87,pH:32,fc:"65", stackable:false, deployH:9,    deployL:10.42,price:null, verified:true, note:"MIL 19 units/pallet: vendor PDF says 6, FDG calc said 4. Verify with Keith." },
+  "BW-52":       { name:"NOAQ Boxwall BW52", origin:"70802",upp:26,palletWt:414,  pL:48,pW:40,pH:48, fc:"70", stackable:true,  deployH:1.67, deployL:2.96, price:null, verified:false, note:"Pallet dims estimated — pending from mat@noaq.com" },
+  "BW-102":      { name:"NOAQ Boxwall BW102",origin:"70802",upp:32,palletWt:1138, pL:48,pW:48,pH:52, fc:"70", stackable:true,  deployH:3.33, deployL:2.96, price:null, verified:false, note:"Pallet dims estimated — pending from mat@noaq.com" },
+  "MW-NW8":      { name:"Muscle Wall 8′",   origin:"84321",upp:4,  palletWt:1450, pL:96,pW:48,pH:48, fc:"65", stackable:false, deployH:8,    deployL:4,    price:null, verified:false, note:"Pallet dims estimated (flat bundle)" },
+  "MW4x6":       { name:"Muscle Wall 4′×6′",origin:"84321",upp:null,palletWt:null,pL:null,pW:null,pH:null,fc:"65",stackable:false,deployH:4,deployL:6,price:null,verified:false,note:"Pallet specs missing — cannot quote freight until vendor confirms" },
+};
+
+const ORIGIN_CITY = { "29418":"North Charleston, SC", "70802":"Baton Rouge, LA", "84321":"Logan, UT" };
+
+// ─────────────────────────────────────────────────────
+// RECOMMENDATION ENGINE
+// ─────────────────────────────────────────────────────
+function recommend(heightFt, flow, surface, linearFt) {
+  const recs = [];
+  const softSurface = surface === 'grass' || surface === 'mixed' || surface === 'gravel';
+
+  // Water tubes: only for very shallow + still
+  if (heightFt <= 0.75 && flow === 'still') {
+    recs.push({ rank:'secondary', sku:null, name:'Water-Filled Flood Tubes', deployL:6, deployH:0.75, units:Math.ceil(linearFt/6),
+      why:'Cheapest option for under 9" of still water. Contours to any surface.',
+      caveat:'Cannot be moved once filled. No protection against current or waves. Call for tube SKU pricing.' });
+  }
+
+  // NOAQ BW52: ≤1.67 ft, no waves
+  if (heightFt <= 1.67 && flow !== 'wave') {
+    recs.push({ rank: flow === 'still' ? 'primary' : 'secondary', sku:'BW-52', name:'NOAQ Boxwall BW52',
+      deployL:2.96, deployH:1.67, units:Math.ceil(linearFt/2.96),
+      why:'Reusable, no fill required. Can be repositioned during a flood event — unique advantage.',
+      caveat: softSurface ? 'Use plastic liner on '+surface+' sections for a proper water seal.' : null });
+  }
+
+  // NOAQ BW102: ≤3.33 ft, no waves
+  if (heightFt <= 3.33 && flow !== 'wave') {
+    recs.push({ rank: heightFt > 1.67 && flow === 'still' ? 'primary' : (flow === 'still' ? 'secondary' : 'secondary'),
+      sku:'BW-102', name:'NOAQ Boxwall BW102', deployL:2.96, deployH:3.33, units:Math.ceil(linearFt/2.96),
+      why:'Most popular residential flood barrier in the US. Reusable, no fill, up to 40″ height. Can be moved mid-flood.',
+      caveat: softSurface ? 'Use plastic liner on '+surface+' sections for a proper water seal.' : null });
+  }
+
+  // Muscle Wall 4'×6': ≤4 ft (especially waves/moving)
+  if (heightFt <= 4) {
+    const isPreferred = flow === 'wave' || flow === 'moving';
+    recs.push({ rank: isPreferred ? 'primary' : 'secondary', sku:'MW4x6', name:"Muscle Wall 4′×6′",
+      deployL:6, deployH:4, units:Math.ceil(linearFt/6),
+      why: flow==='wave' ? 'Water-filled mass resists wave action and storm surge. Best reusable option for coastal events.'
+         : flow==='moving' ? 'Water-filled mass holds against current and debris. Stays put where lighter barriers would shift.'
+         : 'Reusable, water-filled. Good for mixed-surface runs where NOAQ may need extra sealing.',
+      caveat:'Must cover with plastic liner for full water-tightness. Handle with care during setup — units can crack if thrown.' });
+  }
+
+  // Muscle Wall 8': 4–8 ft (especially waves/moving)
+  if (heightFt > 3.33 && heightFt <= 8) {
+    recs.push({ rank: flow === 'wave' || flow === 'moving' ? 'primary' : 'primary',
+      sku:'MW-NW8', name:"Muscle Wall 8′",
+      deployL:4, deployH:8, units:Math.ceil(linearFt/4),
+      why: 'Tallest reusable flood barrier available. Water-filled for stability against waves and debris. Commercial and government deployments.',
+      caveat:'Needs plastic liner for watertight seal. Plan storage: 1 sq ft of storage per linear foot of protection.' });
+  }
+
+  // HESCO Floodline: any height (use for height>8 or large scale or non-reusable)
+  const hescoIsPrimary = heightFt > 8 || linearFt > 500;
+  recs.push({ rank: hescoIsPrimary ? 'primary' : 'secondary', sku:'SL4836-2026', name:'HESCO Floodline',
+    deployL:15, deployH:4, units:Math.ceil(linearFt/15),
+    why: heightFt > 8 ? 'Only option for water over 8 ft. Units stack to 16+ ft — no other barrier reaches this height.'
+       : linearFt > 500 ? 'Most cost-effective at scale. Best per-linear-foot value for 500+ ft runs.'
+       : 'Non-reusable but works on any terrain — soft ground, slopes, uneven surfaces where rigid barriers fail.',
+    caveat:'Non-reusable. Requires heavy equipment (loader/excavator) and fill material on site. Plan construction time separately from delivery time.' });
+
+  // De-duplicate by sku and pick best rank
+  const seen = {}; const out = [];
+  for (const r of recs) {
+    const key = r.sku || r.name;
+    if (!seen[key] || (r.rank === 'primary' && seen[key].rank !== 'primary')) {
+      seen[key] = r;
+    }
+  }
+  Object.values(seen).forEach(r => out.push(r));
+  // Sort: primary first
+  out.sort((a,b) => (a.rank==='primary'?0:1)-(b.rank==='primary'?0:1));
+  return out;
+}
+
+// ─────────────────────────────────────────────────────
+// P1 API CALL
+// ─────────────────────────────────────────────────────
+async function fetchRates(sku, units, destZip, pickupDate, fcOverride, accessorials) {
+  if (!WORKER_URL) return { error:'WORKER_URL not configured' };
+  const p = PRODUCTS[sku];
+  if (!p || !p.palletWt) return { error:'Pallet specs not yet confirmed for this product' };
+  const pallets = Math.ceil(units / p.upp);
+  const fc = (fcOverride && fcOverride !== 'auto') ? fcOverride : p.fc;
+  const body = {
+    customerId:308974, originZipCode:p.origin, destinationZipCode:destZip, pickupDate:pickupDate,
+    items:[{ freightClass:fc, packagingType:"Pallet", units:pallets, pieces:units,
+      totalWeight:pallets*p.palletWt, length:p.pL, width:p.pW, height:p.pH,
+      isStackable:p.stackable, isHazardous:false, isUsed:false, isMachinery:false,
+      description:p.name+" Flood Barriers" }],
+  };
+  if (accessorials.length) body.accessorials = accessorials;
+  try {
+    const res = await fetch(WORKER_URL+'/quote', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
+    const raw = await res.json();
+    if (!res.ok) return { error: raw?.message || raw?.error || 'P1 error '+res.status };
+    let rates = Array.isArray(raw) ? raw : (raw.rates||raw.data||raw.quotes||[]);
+    rates.sort((a,b) => price(a)-price(b));
+    return { rates };
+  } catch(e) { return { error:e.message }; }
+}
+
+function price(r) {
+  for (const k of ['totalCharge','totalAmount','price','amount','total','netCharge']) {
+    if (r[k]!=null && !isNaN(+r[k])) return +r[k];
+  }
+  return 0;
+}
+function fmtDate(s) {
+  if (!s) return ''; const d=new Date(s); if(isNaN(d))return s;
+  return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+}
+function nextBizDay() {
+  const d=new Date(); d.setDate(d.getDate()+(d.getDay()===5?3:d.getDay()===6?2:1));
+  return d.toISOString().slice(0,10);
+}
+function getAccList(containerId) {
+  return [...document.querySelectorAll('#'+containerId+' input[type=checkbox]:checked')].map(c=>c.value);
+}
+function toggleAcc(el) {
+  el.classList.toggle('checked', el.querySelector('input').checked);
+}
+function selectTile(gridId, radio) {
+  document.querySelectorAll('#'+gridId+' .option-tile').forEach(t=>t.classList.remove('selected'));
+  radio.closest('.option-tile').classList.add('selected');
+}
+
+// ─────────────────────────────────────────────────────
+// WIZARD
+// ─────────────────────────────────────────────────────
+function wizardCalc() { /* live preview placeholder — no heavy calc on input */ }
+
+async function runWizard() {
+  const linFt  = parseFloat(document.getElementById('w-linear-ft').value);
+  const height = parseFloat(document.getElementById('w-height').value);
+  const flow   = document.querySelector('input[name="w-flow"]:checked')?.value;
+  const surf   = document.querySelector('input[name="w-surface"]:checked')?.value;
+  const zip    = document.getElementById('w-zip').value.trim();
+  const date   = document.getElementById('w-date').value || nextBizDay();
+  const fc     = document.getElementById('w-fclass').value;
+  const acc    = getAccList('w-acc');
+
+  const errEl = document.getElementById('w-err');
+  errEl.textContent = '';
+  if (!linFt || linFt<1) { errEl.textContent='Enter linear feet.'; return; }
+  if (!height)            { errEl.textContent='Select a flood height.'; return; }
+  if (!flow)              { errEl.textContent='Select water flow type.'; return; }
+  if (!surf)              { errEl.textContent='Select ground surface.'; return; }
+  if (zip.length!==5)    { errEl.textContent='Enter a 5-digit destination ZIP.'; return; }
+
+  const btn=document.getElementById('w-submit');
+  document.getElementById('w-btn-text').textContent='Working…';
+  document.getElementById('w-spinner').style.display='inline-block';
+  btn.disabled=true;
+
+  const recs = recommend(height, flow, surf, linFt);
+  renderWizardSummary(linFt, height, flow, surf, recs.length);
+  renderWizardCards(recs, zip, date, fc, acc);
+
+  document.getElementById('results-wizard').style.display='block';
+  document.getElementById('results-wizard').scrollIntoView({behavior:'smooth',block:'start'});
+
+  document.getElementById('w-btn-text').textContent='Find Products + Get Freight';
+  document.getElementById('w-spinner').style.display='none';
+  btn.disabled=false;
+
+  // Fetch freight for each product that can be quoted
+  for (const rec of recs) {
+    if (!rec.sku) continue;
+    const p = PRODUCTS[rec.sku];
+    if (!p?.palletWt) continue;
+    const cardFreight = document.getElementById('freight-'+safeId(rec.sku));
+    if (!cardFreight) continue;
+
+    fetchRates(rec.sku, rec.units, zip, date, fc, acc).then(result => {
+      renderCardFreight(cardFreight, result, rec.sku, rec.units, zip);
+    });
+  }
+}
+
+function safeId(sku) { return sku.replace(/[^a-zA-Z0-9]/g,'_'); }
+
+function renderWizardSummary(linFt, height, flow, surf, numRecs) {
+  const flowLabel = {still:'Still / Slow rise', moving:'Moving / Flash flood', wave:'Wave / Storm surge'}[flow]||flow;
+  const surfLabel = {hard:'Concrete/Asphalt', grass:'Grass/Soil', gravel:'Gravel/Uneven', mixed:'Mixed'}[surf]||surf;
+  document.getElementById('w-totals').innerHTML = `
+    <div class="total-box"><div class="lbl">Protection line</div><div class="val">${linFt.toLocaleString()}′</div><div class="sub">linear feet</div></div>
+    <div class="total-box"><div class="lbl">Flood height</div><div class="val">${height}′</div></div>
+    <div class="total-box"><div class="lbl">Flow type</div><div class="val" style="font-size:14px;margin-top:5px;">${flowLabel}</div></div>
+    <div class="total-box"><div class="lbl">Surface</div><div class="val" style="font-size:14px;margin-top:5px;">${surfLabel}</div></div>
+  `;
+  document.getElementById('w-results-meta').textContent = `${numRecs} product${numRecs>1?'s':''} match your conditions`;
+}
+
+function renderWizardCards(recs, zip, date, fc, acc) {
+  const container = document.getElementById('w-cards');
+  container.innerHTML = '';
+  recs.forEach(rec => {
+    const p = rec.sku ? PRODUCTS[rec.sku] : null;
+    const pallets = p && p.upp ? Math.ceil(rec.units/p.upp) : '—';
+    const totalWt = p && p.upp ? (Math.ceil(rec.units/p.upp)*p.palletWt).toLocaleString()+' lbs' : '—';
+    const origin  = p ? ORIGIN_CITY[p.origin]+' ('+p.origin+')' : '—';
+    const priceStr = p?.price ? '$'+p.price.toLocaleString()+'/unit' : 'Call for pricing';
+    const canQuote = !!(rec.sku && p?.palletWt && WORKER_URL);
+
+    container.innerHTML += `
+    <div class="prod-card ${rec.rank}" id="card-${safeId(rec.sku||rec.name)}">
+      <div class="prod-card-header">
+        <div>
+          <div class="prod-card-name">${rec.name}</div>
+          <div class="prod-card-sub">${rec.deployH}′ H · ${rec.deployL}′ L per unit · ${rec.units} units for ${(rec.units*rec.deployL).toFixed(0)}′ coverage</div>
+        </div>
+        <div class="rank-badge rank-${rec.rank}">${rec.rank.toUpperCase()}</div>
+      </div>
+      <div class="prod-card-why">${rec.why}</div>
+      ${rec.caveat ? `<div class="prod-card-caveat">⚠ ${rec.caveat}</div>` : ''}
+      ${p?.note && !p?.verified ? `<div class="prod-card-caveat" style="background:#1a1a0d;border-color:#5a4a0d;color:#c8a030;">📋 ${p.note}</div>` : ''}
+      <div class="prod-card-stats">
+        <div class="stat-cell"><div class="stat-lbl">Units needed</div><div class="stat-val">${rec.units.toLocaleString()}</div><div class="stat-sub">${(rec.units*rec.deployL).toFixed(0)}′ coverage</div></div>
+        <div class="stat-cell"><div class="stat-lbl">Pallets</div><div class="stat-val">${pallets}</div><div class="stat-sub">${totalWt}</div></div>
+        <div class="stat-cell"><div class="stat-lbl">Unit price</div><div class="stat-val" style="font-size:14px;margin-top:5px;">${priceStr}</div></div>
+        <div class="stat-cell"><div class="stat-lbl">Ships from</div><div class="stat-val" style="font-size:12px;margin-top:6px;line-height:1.3;">${origin}</div></div>
+      </div>
+      <div class="prod-card-freight" id="freight-${safeId(rec.sku||rec.name)}">
+        ${!rec.sku ? '<div class="freight-error">No SKU — call for quote.</div>'
+          : !p?.palletWt ? '<div class="freight-error">⚠ Pallet specs missing — freight unavailable until vendor confirms dims.</div>'
+          : !WORKER_URL ? '<div class="freight-error">Set WORKER_URL to get live freight rates.</div>'
+          : '<div class="freight-loading"><div class="spinner"></div> Getting freight rates…</div>'}
+      </div>
+      <div class="prod-card-footer">
+        ${rec.sku && p ? `<button class="btn btn-secondary btn-sm" onclick="copyCard('${rec.sku}',${rec.units},'${zip}')">Copy quote line</button>` : ''}
+        ${rec.sku && p ? `<button class="btn btn-secondary btn-sm" onclick="goToQuick('${rec.sku}',${rec.units})">Open in Quick Freight</button>` : ''}
+      </div>
+    </div>`;
+  });
+}
+
+function renderCardFreight(el, result, sku, units, destZip) {
+  if (result.error) {
+    el.innerHTML = `<div class="freight-error">⚠ ${result.error}</div>`;
+    return;
+  }
+  const rates = result.rates;
+  if (!rates?.length) { el.innerHTML='<div class="freight-error">No rates returned for this lane.</div>'; return; }
+  const best = rates[0];
+  const bestP1 = price(best);
+  const bestFDG = bestP1*1.1;
+  const carrier = best.carrierName||best.carrier||best.scac||'Best rate';
+  const transit = best.transitDays!=null?best.transitDays:(best.transitTime||'—');
+  const delDate = best.estimatedDeliveryDate||best.deliveryDate||'';
+  const sid = safeId(sku);
+
+  el.innerHTML = `
+    <div class="freight-rates" style="display:block;">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+        <div>
+          <div class="freight-best">$${bestFDG.toFixed(2)}</div>
+          <div class="freight-carrier">${carrier} · ${transit} day${transit!==1?'s':''} transit${delDate?' · Est. '+fmtDate(delDate):''}</div>
+          <div class="freight-carrier" style="margin-top:2px;color:var(--muted);font-size:11px;">P1 rate: $${bestP1.toFixed(2)} · FDG price = P1 × 1.10</div>
+        </div>
+        <div style="font-size:20px;font-weight:700;color:var(--success-text);">
+          Total: $${(bestFDG + (PRODUCTS[sku]?.price ? PRODUCTS[sku].price * units : 0)).toLocaleString(undefined,{maximumFractionDigits:2})}
+          ${PRODUCTS[sku]?.price ? '<div style="font-size:11px;color:var(--muted);font-weight:400;">product + freight</div>' : '<div style="font-size:11px;color:var(--muted);font-weight:400;">freight only (product: call)</div>'}
+        </div>
+      </div>
+      ${rates.length>1?`<span class="freight-toggle" onclick="toggleAllRates('${sid}')">Show all ${rates.length} carriers ▾</span>`:''}
+      <div class="freight-all" id="fall-${sid}">
+        <table class="freight-table">
+          <thead><tr><th>Carrier</th><th>Days</th><th>P1 Rate</th><th>FDG (+10%)</th></tr></thead>
+          <tbody>${rates.map((r,i)=>`<tr class="${i===0?'best-row':''}"><td>${r.carrierName||r.carrier||r.scac||'—'}</td><td>${r.transitDays!=null?r.transitDays:(r.transitTime||'—')}</td><td class="p1-price">$${price(r).toFixed(2)}</td><td class="fdg-price">$${(price(r)*1.1).toFixed(2)}</td></tr>`).join('')}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+function toggleAllRates(sid) {
+  const el = document.getElementById('fall-'+sid);
+  if (!el) return;
+  el.classList.toggle('open');
+}
+
+function copyCard(sku, units, zip) {
+  const p = PRODUCTS[sku];
+  if (!p) return;
+  const lines = [
+    p.name+' — '+units+' units ('+((units*p.deployL).toFixed(0))+'′ coverage)',
+    'Ships from: '+ORIGIN_CITY[p.origin]+' ('+p.origin+') → '+zip,
+    p.price?'Product: $'+(p.price*units).toLocaleString()+' ($'+p.price+'/unit)':'Product pricing: call',
+    'Pallets: '+Math.ceil(units/p.upp),
+    'Freight: see quote tool results',
+  ];
+  navigator.clipboard.writeText(lines.join('\n'));
+}
+
+function goToQuick(sku, units) {
+  switchTab('quick');
+  document.getElementById('q-product').value = sku;
+  qProductChange();
+  document.getElementById('q-qty').value = units;
+  qQtyChange();
+  document.getElementById('q-zip').value = document.getElementById('w-zip').value;
+}
+
+function clearWizard() {
+  document.getElementById('results-wizard').style.display='none';
+  document.getElementById('w-cards').innerHTML='';
+  document.getElementById('w-totals').innerHTML='';
+}
+
+// ─────────────────────────────────────────────────────
+// QUICK FREIGHT TAB
+// ─────────────────────────────────────────────────────
+function qProductChange() {
+  const sku = document.getElementById('q-product').value;
+  const p = PRODUCTS[sku];
+  if (!p) { document.getElementById('q-submit').disabled=true; return; }
+  document.getElementById('q-fclass').value = p.fc;
+  const warn = document.getElementById('q-warn');
+  if (!p.palletWt) { warn.textContent=p.note||'Pallet specs missing — cannot quote freight.'; warn.classList.add('show'); document.getElementById('q-submit').disabled=true; }
+  else { if(p.note&&!p.verified){warn.textContent=p.note;warn.classList.add('show');}else{warn.classList.remove('show');} }
+  qQtyChange();
+}
+
+function qQtyModeToggle() {
+  const useLF = document.getElementById('q-use-lf').checked;
+  document.getElementById('q-qty-lbl').textContent = useLF ? 'Linear feet' : 'Units';
+  document.getElementById('q-qty').placeholder = useLF ? 'e.g. 300' : 'e.g. 20';
+  document.getElementById('q-qty').value='';
+  document.getElementById('q-pallet').classList.remove('show');
+}
+
+function qQtyChange() {
+  const sku = document.getElementById('q-product').value;
+  const p = PRODUCTS[sku]; if(!p||!p.palletWt) return;
+  const useLF = document.getElementById('q-use-lf').checked;
+  const raw = parseFloat(document.getElementById('q-qty').value);
+  if(!raw||raw<=0){ document.getElementById('q-pallet').classList.remove('show'); document.getElementById('q-roundhint').classList.remove('show'); return; }
+  const units = useLF ? Math.ceil(raw/p.deployL) : Math.floor(raw);
+  const pallets = Math.ceil(units/p.upp);
+  const wt = pallets*p.palletWt;
+  const strip = document.getElementById('q-pallet');
+  strip.innerHTML = `<b>${units}</b> units → <b>${pallets}</b> pallet${pallets>1?'s':''} · <b>${wt.toLocaleString()} lbs</b> · from ${ORIGIN_CITY[p.origin]||p.origin}`;
+  strip.classList.add('show');
+  const empty = units%p.upp===0?0:p.upp-(units%p.upp);
+  const hint = document.getElementById('q-roundhint');
+  if(empty>=3){ const full=pallets*p.upp; hint.innerHTML=`<b>Round-up play:</b> ${empty} empty slots on last pallet. Quote ${full} units (+${((full-units)*p.deployL).toFixed(0)}′ coverage) for same freight cost.`; hint.classList.add('show'); }
+  else { hint.classList.remove('show'); }
+  const zipOk = document.getElementById('q-zip').value.length===5;
+  document.getElementById('q-submit').disabled = !(zipOk&&!(!p.palletWt));
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const d=nextBizDay();
+  document.getElementById('w-date').value=d;
+  document.getElementById('q-date').value=d;
+  if (!WORKER_URL) document.getElementById('cfg-notice').classList.add('show');
+  document.getElementById('q-zip').addEventListener('input', () => {
+    const ok = document.getElementById('q-zip').value.length===5;
+    const sku = document.getElementById('q-product').value;
+    const p = PRODUCTS[sku];
+    document.getElementById('q-submit').disabled = !(ok&&p&&p.palletWt);
+  });
+});
+
+async function runQuick() {
+  const sku  = document.getElementById('q-product').value;
+  const p    = PRODUCTS[sku];
+  const zip  = document.getElementById('q-zip').value.trim();
+  const date = document.getElementById('q-date').value || nextBizDay();
+  const fc   = document.getElementById('q-fclass').value;
+  const acc  = getAccList('q-acc');
+  const useLF = document.getElementById('q-use-lf').checked;
+  const rawQty = parseFloat(document.getElementById('q-qty').value);
+  const units = useLF ? Math.ceil(rawQty/p.deployL) : Math.floor(rawQty);
+
+  const errInline = document.getElementById('q-err-inline');
+  errInline.textContent='';
+  if (!sku)           { errInline.textContent='Select a product.'; return; }
+  if (!units||units<1){ errInline.textContent='Enter quantity.'; return; }
+  if (zip.length!==5) { errInline.textContent='5-digit ZIP required.'; return; }
+
+  document.getElementById('q-btn-text').textContent='Getting rates…';
+  document.getElementById('q-spinner').style.display='inline-block';
+  document.getElementById('q-submit').disabled=true;
+  document.getElementById('q-results').style.display='none';
+  document.getElementById('q-err-card').classList.remove('show');
+
+  const result = await fetchRates(sku, units, zip, date, fc, acc);
+
+  document.getElementById('q-btn-text').textContent='Get Freight Rates';
+  document.getElementById('q-spinner').style.display='none';
+  document.getElementById('q-submit').disabled=false;
+
+  if (result.error) {
+    const e=document.getElementById('q-err-card'); e.textContent=result.error; e.classList.add('show'); return;
+  }
+  const rates = result.rates;
+  if(!rates?.length){ const e=document.getElementById('q-err-card'); e.textContent='No rates returned for this lane.'; e.classList.add('show'); return; }
+
+  const pallets=Math.ceil(units/p.upp);
+  document.getElementById('q-results-meta').textContent =
+    `${p.name} · ${units} units · ${pallets} pallets · ${p.origin} → ${zip} · ${rates.length} carrier${rates.length>1?'s':''}`;
+
+  const tbody = document.getElementById('q-tbody');
+  tbody.innerHTML='';
+  rates.forEach((r,i)=>{
+    const p1=price(r); const fdg=p1*1.1;
+    const carrier=r.carrierName||r.carrier||r.scac||'Unknown';
+    const svc=r.serviceLevel||r.mode||r.serviceName||'';
+    const tr=document.getElementById('q-transit')||null;
+    const transit=r.transitDays!=null?r.transitDays:(r.transitTime||'—');
+    const del=r.estimatedDeliveryDate||r.deliveryDate||'';
+    tbody.innerHTML+=`<tr class="${i===0?'best':''}">
+      <td><div class="carrier-name">${carrier}${i===0?'<span class="best-tag">BEST</span>':''}</div>${svc?'<div class="carrier-svc">'+svc+'</div>':''}</td>
+      <td>${transit}${typeof transit==='number'?' days':''}${del?'<div class="del-date">Est. '+fmtDate(del)+'</div>':''}</td>
+      <td class="p1-price">$${p1.toFixed(2)}</td>
+      <td style="text-align:right"><span class="fdg-price" style="font-size:16px;">$${fdg.toFixed(2)}</span></td>
+      <td><button class="btn btn-secondary btn-sm" onclick="copyQuickLine('${carrier}','${svc}',${transit},'${del||''}',${fdg.toFixed(2)},${units},'${sku}','${zip}')">Copy</button></td>
+    </tr>`;
+  });
+  document.getElementById('q-results').style.display='block';
+}
+
+function copyQuickLine(carrier, svc, transit, del, fdg, units, sku, zip) {
+  const p=PRODUCTS[sku]; if(!p)return;
+  const lines=[
+    p.name+' — '+units+' units ('+((units*p.deployL).toFixed(0))+'′ coverage)',
+    'Route: '+ORIGIN_CITY[p.origin]+' ('+p.origin+') → '+zip,
+    'Carrier: '+carrier+(svc?' – '+svc:''),
+    'Transit: '+transit+(typeof transit==='number'?' days':'')+(del?' / Est. '+fmtDate(del):''),
+    'Freight (FDG price): $'+parseFloat(fdg).toFixed(2)+' (includes 10% buffer)',
+  ];
+  navigator.clipboard.writeText(lines.join('\n'));
+}
+
+function clearQuick() {
+  document.getElementById('q-results').style.display='none';
+  document.getElementById('q-tbody').innerHTML='';
+  document.getElementById('q-err-card').classList.remove('show');
+}
+
+// ─────────────────────────────────────────────────────
+// TAB SWITCH
+// ─────────────────────────────────────────────────────
+function switchTab(name) {
+  ['wizard','quick'].forEach(t=>{
+    document.getElementById('panel-'+t).classList.toggle('active',t===name);
+    document.getElementById('tab-'+t).classList.toggle('active',t===name);
+  });
+}
+</script>
+</body>
+</html>
