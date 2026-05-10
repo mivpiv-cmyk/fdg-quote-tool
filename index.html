@@ -370,6 +370,26 @@
       <button class="btn btn-secondary btn-sm" onclick="clearWizard()">New search</button>
     </div>
 
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:8px;">
+      <span style="font-size:12px;color:var(--muted);white-space:nowrap;">Sort by:</span>
+      <select id="filter-sort" onchange="applyFilters()" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:4px 8px;border-radius:5px;font-size:12px;cursor:pointer;">
+        <option value="match">Best match</option>
+        <option value="height-asc">Protection height ↑ low→high</option>
+        <option value="height-desc">Protection height ↓ high→low</option>
+        <option value="price-asc">Unit price ↑ low→high</option>
+        <option value="price-desc">Unit price ↓ high→low</option>
+      </select>
+      <div style="width:1px;height:18px;background:var(--border);"></div>
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);cursor:pointer;">
+        <input type="checkbox" id="filter-reusable" onchange="applyFilters()" style="cursor:pointer;" />
+        Reusable only
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);cursor:pointer;">
+        <input type="checkbox" id="filter-primary" onchange="applyFilters()" style="cursor:pointer;" />
+        Primary recommendations only
+      </label>
+    </div>
+
     <div class="results-grid" id="w-cards"></div>
   </div>
 
@@ -530,69 +550,71 @@ const ORIGIN_CITY = { "29418":"North Charleston, SC", "70802":"Baton Rouge, LA",
 function recommend(heightFt, flow, surface, linearFt) {
   const recs = [];
   const softSurface = surface === 'grass' || surface === 'mixed' || surface === 'gravel';
+  const anyFlow    = !flow;
+  const anySurface = !surface;
+  const surfCaveat = anySurface ? 'May require plastic liner on soft or uneven surfaces — confirm before deployment.'
+                   : softSurface ? 'Use plastic liner on '+surface+' sections for a proper water seal.' : null;
 
-  // Water tubes: only for very shallow + still
-  if (heightFt <= 0.75 && flow === 'still') {
-    recs.push({ rank:'secondary', sku:null, name:'Water-Filled Flood Tubes', deployL:6, deployH:0.75, units:Math.ceil(linearFt/6),
+  // Water tubes: very shallow + still (or flow unknown)
+  if (heightFt <= 0.75 && (flow === 'still' || anyFlow)) {
+    recs.push({ rank:'secondary', reusable:false, sku:null, name:'Water-Filled Flood Tubes',
+      deployL:6, deployH:0.75, units:Math.ceil(linearFt/6),
       why:'Cheapest option for under 9" of still water. Contours to any surface.',
       caveat:'Cannot be moved once filled. No protection against current or waves. Call for tube SKU pricing.' });
   }
 
-  // NOAQ BW52: ≤1.67 ft, no waves
+  // NOAQ BW52: ≤1.67 ft, not waves
   if (heightFt <= 1.67 && flow !== 'wave') {
-    recs.push({ rank: flow === 'still' ? 'primary' : 'secondary', sku:'BW-52', name:'NOAQ Boxwall BW52',
-      deployL:2.96, deployH:1.67, units:Math.ceil(linearFt/2.96),
+    recs.push({ rank:(flow === 'still' || anyFlow) ? 'primary' : 'secondary', reusable:true,
+      sku:'BW-52', name:'NOAQ Boxwall BW52', deployL:2.96, deployH:1.67, units:Math.ceil(linearFt/2.96),
       why:'Reusable, no fill required. Can be repositioned during a flood event — unique advantage.',
-      caveat: softSurface ? 'Use plastic liner on '+surface+' sections for a proper water seal.' : null });
+      caveat:surfCaveat });
   }
 
-  // NOAQ BW102: ≤3.33 ft, no waves
+  // NOAQ BW102: ≤3.33 ft, not waves
   if (heightFt <= 3.33 && flow !== 'wave') {
-    recs.push({ rank: heightFt > 1.67 && flow === 'still' ? 'primary' : (flow === 'still' ? 'secondary' : 'secondary'),
+    recs.push({ rank:(heightFt > 1.67 && (flow === 'still' || anyFlow)) ? 'primary' : 'secondary', reusable:true,
       sku:'BW-102', name:'NOAQ Boxwall BW102', deployL:2.96, deployH:3.33, units:Math.ceil(linearFt/2.96),
       why:'Most popular residential flood barrier in the US. Reusable, no fill, up to 40″ height. Can be moved mid-flood.',
-      caveat: softSurface ? 'Use plastic liner on '+surface+' sections for a proper water seal.' : null });
+      caveat:surfCaveat });
   }
 
-  // Muscle Wall 4'×6': ≤4 ft (especially waves/moving)
+  // Muscle Wall 4'×6': ≤4 ft
   if (heightFt <= 4) {
     const isPreferred = flow === 'wave' || flow === 'moving';
-    recs.push({ rank: isPreferred ? 'primary' : 'secondary', sku:'MW4x6', name:"Muscle Wall 4′×6′",
-      deployL:6, deployH:4, units:Math.ceil(linearFt/6),
-      why: flow==='wave' ? 'Water-filled mass resists wave action and storm surge. Best reusable option for coastal events.'
+    recs.push({ rank:isPreferred ? 'primary' : 'secondary', reusable:true,
+      sku:'MW4x6', name:"Muscle Wall 4′×6′", deployL:6, deployH:4, units:Math.ceil(linearFt/6),
+      why: flow==='wave'   ? 'Water-filled mass resists wave action and storm surge. Best reusable option for coastal events.'
          : flow==='moving' ? 'Water-filled mass holds against current and debris. Stays put where lighter barriers would shift.'
+         : anyFlow         ? 'Water-filled, reusable. Handles any flow condition — still water, current, or wave action.'
          : 'Reusable, water-filled. Good for mixed-surface runs where NOAQ may need extra sealing.',
-      caveat:'Must cover with plastic liner for full water-tightness. Handle with care during setup — units can crack if thrown.' });
+      caveat:'Must cover with plastic liner for full water-tightness. Handle with care — units can crack if thrown.' });
   }
 
-  // Muscle Wall 8': 4–8 ft (especially waves/moving)
+  // Muscle Wall 8': 3.33–8 ft
   if (heightFt > 3.33 && heightFt <= 8) {
-    recs.push({ rank: flow === 'wave' || flow === 'moving' ? 'primary' : 'primary',
-      sku:'MW-NW8', name:"Muscle Wall 8′",
-      deployL:4, deployH:8, units:Math.ceil(linearFt/4),
-      why: 'Tallest reusable flood barrier available. Water-filled for stability against waves and debris. Commercial and government deployments.',
+    recs.push({ rank:'primary', reusable:true,
+      sku:'MW-NW8', name:"Muscle Wall 8′", deployL:4, deployH:8, units:Math.ceil(linearFt/4),
+      why:'Tallest reusable flood barrier available. Water-filled for stability against waves and debris. Commercial and government deployments.',
       caveat:'Needs plastic liner for watertight seal. Plan storage: 1 sq ft of storage per linear foot of protection.' });
   }
 
-  // HESCO Floodline: any height (use for height>8 or large scale or non-reusable)
+  // HESCO Floodline: always shown
   const hescoIsPrimary = heightFt > 8 || linearFt > 500;
-  recs.push({ rank: hescoIsPrimary ? 'primary' : 'secondary', sku:'SL4836-2026', name:'HESCO Floodline',
-    deployL:15, deployH:4, units:Math.ceil(linearFt/15),
-    why: heightFt > 8 ? 'Only option for water over 8 ft. Units stack to 16+ ft — no other barrier reaches this height.'
+  recs.push({ rank:hescoIsPrimary ? 'primary' : 'secondary', reusable:false,
+    sku:'SL4836-2026', name:'HESCO Floodline', deployL:15, deployH:4, units:Math.ceil(linearFt/15),
+    why: heightFt > 8   ? 'Only option for water over 8 ft. Units stack to 16+ ft — no other barrier reaches this height.'
        : linearFt > 500 ? 'Most cost-effective at scale. Best per-linear-foot value for 500+ ft runs.'
        : 'Non-reusable but works on any terrain — soft ground, slopes, uneven surfaces where rigid barriers fail.',
     caveat:'Non-reusable. Requires heavy equipment (loader/excavator) and fill material on site. Plan construction time separately from delivery time.' });
 
-  // De-duplicate by sku and pick best rank
+  // De-duplicate — keep best rank
   const seen = {}; const out = [];
   for (const r of recs) {
     const key = r.sku || r.name;
-    if (!seen[key] || (r.rank === 'primary' && seen[key].rank !== 'primary')) {
-      seen[key] = r;
-    }
+    if (!seen[key] || (r.rank === 'primary' && seen[key].rank !== 'primary')) seen[key] = r;
   }
   Object.values(seen).forEach(r => out.push(r));
-  // Sort: primary first
   out.sort((a,b) => (a.rank==='primary'?0:1)-(b.rank==='primary'?0:1));
   return out;
 }
@@ -670,8 +692,6 @@ async function runWizard() {
   errEl.textContent = '';
   if (!linFt || linFt<1) { errEl.textContent='Enter linear feet.'; return; }
   if (!height)            { errEl.textContent='Select a flood height.'; return; }
-  if (!flow)              { errEl.textContent='Select water flow type.'; return; }
-  if (!surf)              { errEl.textContent='Select ground surface.'; return; }
   if (zip.length!==5)    { errEl.textContent='Enter a 5-digit destination ZIP.'; return; }
 
   const btn=document.getElementById('w-submit');
@@ -730,7 +750,12 @@ function renderWizardCards(recs, zip, date, fc, acc) {
     const canQuote = !!(rec.sku && p?.palletWt && WORKER_URL);
 
     container.innerHTML += `
-    <div class="prod-card ${rec.rank}" id="card-${safeId(rec.sku||rec.name)}">
+    <div class="prod-card ${rec.rank}" id="card-${safeId(rec.sku||rec.name)}"
+      data-rank="${rec.rank}"
+      data-height="${rec.deployH}"
+      data-price="${p?.price || 0}"
+      data-reusable="${rec.reusable ? 'true' : 'false'}"
+      data-name="${rec.name}">
       <div class="prod-card-header">
         <div>
           <div class="prod-card-name">${rec.name}</div>
@@ -797,6 +822,41 @@ function renderCardFreight(el, result, sku, units, destZip) {
         </table>
       </div>
     </div>`;
+}
+
+function applyFilters() {
+  const sort        = document.getElementById('filter-sort')?.value || 'match';
+  const reusOnly    = document.getElementById('filter-reusable')?.checked;
+  const primaryOnly = document.getElementById('filter-primary')?.checked;
+  const container   = document.getElementById('w-cards');
+  if (!container) return;
+  const cards = [...container.querySelectorAll('.prod-card')];
+
+  // Show/hide
+  cards.forEach(c => {
+    const isReusable = c.dataset.reusable === 'true';
+    const isPrimary  = c.dataset.rank === 'primary';
+    const hide = (reusOnly && !isReusable) || (primaryOnly && !isPrimary);
+    c.style.display = hide ? 'none' : '';
+  });
+
+  // Sort visible cards
+  const visible = cards.filter(c => c.style.display !== 'none');
+  visible.sort((a, b) => {
+    switch (sort) {
+      case 'match':        return (a.dataset.rank==='primary'?0:1) - (b.dataset.rank==='primary'?0:1);
+      case 'height-asc':   return +a.dataset.height - +b.dataset.height;
+      case 'height-desc':  return +b.dataset.height - +a.dataset.height;
+      case 'price-asc':    return +a.dataset.price  - +b.dataset.price;
+      case 'price-desc':   return +b.dataset.price  - +a.dataset.price;
+      default: return 0;
+    }
+  });
+  visible.forEach(c => container.appendChild(c));
+
+  // Update count
+  const meta = document.getElementById('w-results-meta');
+  if (meta) meta.textContent = `${visible.length} product${visible.length!==1?'s':''} shown`;
 }
 
 function toggleAllRates(sid) {
