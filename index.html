@@ -235,18 +235,14 @@
       </div>
       <div>
         <label class="field-label">Flood height — how high does water get? <span style="color:var(--danger-text)">*</span></label>
-        <select id="w-height" onchange="wizardCalc()">
-          <option value="">— Select height —</option>
-          <option value="0.5">Under 6 inches</option>
-          <option value="0.75">6 – 9 inches</option>
-          <option value="1.5">9 inches – 1.5 ft</option>
-          <option value="2.5">1.5 – 2.5 ft (18 – 30 inches)</option>
-          <option value="3.33">2.5 – 3.3 ft (30 – 40 inches)</option>
-          <option value="4.5">3.3 – 4.5 ft (40 – 54 inches)</option>
-          <option value="6">4.5 – 6 ft</option>
-          <option value="8">6 – 8 ft</option>
-          <option value="12">Over 8 ft</option>
-        </select>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="number" id="w-height" min="0.01" step="0.01" placeholder="e.g. 2.5" oninput="wizardCalc(); updateHeightHint()" style="flex:1;" />
+          <div style="display:flex;border:1px solid var(--border);border-radius:6px;overflow:hidden;flex-shrink:0;">
+            <button id="unit-ft" onclick="setHeightUnit('ft')" style="padding:8px 12px;background:var(--accent);color:#fff;border:none;cursor:pointer;font-size:12px;font-weight:600;font-family:inherit;">ft</button>
+            <button id="unit-in" onclick="setHeightUnit('in')" style="padding:8px 12px;background:var(--bg);color:var(--muted);border:none;cursor:pointer;font-size:12px;font-weight:600;font-family:inherit;">in</button>
+          </div>
+        </div>
+        <div id="height-hint" style="font-size:11px;color:var(--muted);margin-top:5px;">Enter height in feet · BW52 ≤ 1.67 ft · BW102 ≤ 3.33 ft · MW 4′ ≤ 4 ft · Muscle Wall 8′ ≤ 8 ft</div>
       </div>
     </div>
   </div>
@@ -680,7 +676,7 @@ function wizardCalc() { /* live preview placeholder — no heavy calc on input *
 
 async function runWizard() {
   const linFt  = parseFloat(document.getElementById('w-linear-ft').value);
-  const height = parseFloat(document.getElementById('w-height').value);
+  const height = getHeightFt();
   const flow   = document.querySelector('input[name="w-flow"]:checked')?.value;
   const surf   = document.querySelector('input[name="w-surface"]:checked')?.value;
   const zip    = document.getElementById('w-zip').value.trim();
@@ -690,9 +686,9 @@ async function runWizard() {
 
   const errEl = document.getElementById('w-err');
   errEl.textContent = '';
-  if (!linFt || linFt<1) { errEl.textContent='Enter linear feet.'; return; }
-  if (!height)            { errEl.textContent='Select a flood height.'; return; }
-  if (zip.length!==5)    { errEl.textContent='Enter a 5-digit destination ZIP.'; return; }
+  if (!linFt || linFt<1)        { errEl.textContent='Enter linear feet.'; return; }
+  if (!height || height <= 0)   { errEl.textContent='Enter a flood height.'; return; }
+  if (zip.length!==5)           { errEl.textContent='Enter a 5-digit destination ZIP.'; return; }
 
   const btn=document.getElementById('w-submit');
   document.getElementById('w-btn-text').textContent='Working…';
@@ -1023,6 +1019,55 @@ function clearQuick() {
   document.getElementById('q-results').style.display='none';
   document.getElementById('q-tbody').innerHTML='';
   document.getElementById('q-err-card').classList.remove('show');
+}
+
+// ─────────────────────────────────────────────────────
+// HEIGHT UNIT TOGGLE (ft / in)
+// ─────────────────────────────────────────────────────
+let heightUnit = 'ft';
+
+function setHeightUnit(unit) {
+  const input = document.getElementById('w-height');
+  const raw = parseFloat(input.value);
+  if (!isNaN(raw)) {
+    if (unit === 'in' && heightUnit === 'ft') input.value = (raw * 12).toFixed(1);
+    if (unit === 'ft' && heightUnit === 'in') input.value = (raw / 12).toFixed(2);
+  }
+  heightUnit = unit;
+  input.step = unit === 'in' ? '0.5' : '0.01';
+  input.placeholder = unit === 'in' ? 'e.g. 30' : 'e.g. 2.5';
+  document.getElementById('unit-ft').style.background = unit==='ft' ? 'var(--accent)' : 'var(--bg)';
+  document.getElementById('unit-ft').style.color = unit==='ft' ? '#fff' : 'var(--muted)';
+  document.getElementById('unit-in').style.background = unit==='in' ? 'var(--accent)' : 'var(--bg)';
+  document.getElementById('unit-in').style.color = unit==='in' ? '#fff' : 'var(--muted)';
+  updateHeightHint();
+  wizardCalc();
+}
+
+function getHeightFt() {
+  const raw = parseFloat(document.getElementById('w-height').value);
+  if (isNaN(raw)) return null;
+  return heightUnit === 'in' ? raw / 12 : raw;
+}
+
+function updateHeightHint() {
+  const ft = getHeightFt();
+  const hint = document.getElementById('height-hint');
+  if (!ft || ft <= 0) {
+    hint.textContent = 'Enter height in feet · BW52 ≤ 1.67 ft · BW102 ≤ 3.33 ft · MW 4′ ≤ 4 ft · Muscle Wall 8′ ≤ 8 ft';
+    hint.style.color = 'var(--muted)';
+    return;
+  }
+  const inches = (ft * 12).toFixed(1);
+  const inchesStr = heightUnit === 'ft' ? ` (${inches}″)` : ` (${ft.toFixed(2)} ft)`;
+  let fits = [];
+  if (ft <= 1.67) fits.push('BW52');
+  if (ft <= 3.33) fits.push('BW102');
+  if (ft <= 4)    fits.push('Muscle Wall 4′');
+  if (ft <= 8)    fits.push('Muscle Wall 8′');
+  fits.push('HESCO');
+  hint.textContent = `${ft <= 1 ? ft.toFixed(2) : ft.toFixed(2)} ft${inchesStr} · Fits: ${fits.join(', ')}`;
+  hint.style.color = 'var(--success-text)';
 }
 
 // ─────────────────────────────────────────────────────
