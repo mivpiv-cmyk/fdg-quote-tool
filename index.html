@@ -877,10 +877,10 @@ function copyCard(sku, units, zip) {
 function goToQuick(sku, units) {
   switchTab('quick');
   document.getElementById('q-product').value = sku;
+  document.getElementById('q-zip').value = document.getElementById('w-zip').value;
   qProductChange();
   document.getElementById('q-qty').value = units;
   qQtyChange();
-  document.getElementById('q-zip').value = document.getElementById('w-zip').value;
 }
 
 function clearWizard() {
